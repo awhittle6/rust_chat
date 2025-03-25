@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package chat;
+
+service ChatService {
+    rpc ChatStream (stream ChatMessage) returns (stream ChatMessage);
+}
+
+message ChatMessage {
+    string message = 1;
+    int64 timestamp = 2;
+}
