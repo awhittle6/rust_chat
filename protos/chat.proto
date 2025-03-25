@@ -8,5 +8,6 @@ service ChatService {
 
 message ChatMessage {
     string message = 1;
-    int64 timestamp = 2;
+    string sender = 2;
+    int64 timestamp = 3;
 }

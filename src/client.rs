@@ -55,8 +55,13 @@ async fn chat(client: &mut ChatServiceClient<Channel>){
 
 #[tokio::main]
 pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut client = ChatServiceClient::connect("http://[::1]:50051").await.unwrap();
-    println!("Client started");
-    chat(&mut client).await;
+    match ChatServiceClient::connect("http://[::1]:50051").await {
+        Ok(mut client) => {
+            println!("✅ Connected to server!");
+            chat(&mut client).await;
+        }, Err(_) => {
+            println!("Server disconnected")
+        }
+    }
     Ok(())
 }
