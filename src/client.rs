@@ -21,7 +21,6 @@ pub async fn input() -> String {
     inp.trim().to_string()
 }
 
-
 async fn chat(client: &mut ChatServiceClient<Channel>){
     let (tx, rx) = mpsc::channel(128);
     let in_stream = ReceiverStream::new(rx);

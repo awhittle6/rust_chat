@@ -47,9 +47,10 @@ impl ChatService for MyChatService {
                         println!("{}: {:?} \n{:?}\n\n", &client_id,res.message, res.timestamp );
                         let clients = clients.lock().await;
                         for (id, client_tx) in clients.iter() {
+
                             if id != &client_id {
                                 let message = ChatMessage {
-                                    message: format!("{}: {:?} \n{:?}\n\n", &client_id,res.message, res.timestamp),
+                                    message: format!("{}: {:?} {:?}", &client_id,res.message, res.timestamp),
                                     timestamp: Utc::now().timestamp()
                                 };
                                 client_tx.send(Ok(message)).await.unwrap();
@@ -63,6 +64,8 @@ impl ChatService for MyChatService {
                     }
                 }
             }
+            let mut clients = clients.lock().await;
+            clients.remove(&client_id);
         });
         let rc = ReceiverStream::new(rx);
         let f = Box::pin(rc) as Self::ChatStreamStream;
@@ -80,13 +83,12 @@ pub async fn main () -> Result<(), Box<dyn std::error::Error>>{
     let server = MyChatService {
         clients: Arc::new(Mutex::new(HashMap::new())),
     };
+    println!("✅ Server started!");
     Server::builder()
         .add_service(ChatServiceServer::new(server))
         .serve("[::1]:50051".to_socket_addrs().unwrap().next().unwrap())
         .await
         .unwrap();
-
-    println!("Server started on port");
     
     Ok(())
 }
