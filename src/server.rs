@@ -1,3 +1,4 @@
+use chrono::Utc;
 use tonic::Streaming;
 use tonic::{transport::Server, Status, Request, Response};
 use tokio::sync::{mpsc, Mutex};
@@ -17,7 +18,7 @@ use chat::ChatMessage;
 
 #[derive(Debug, Default)]
 pub struct MyChatService {
-    clients: Arc<Mutex<HashMap<String, ()>>>,
+    clients: Arc<Mutex<HashMap<String, mpsc::Sender<Result<ChatMessage, Status>>>>>,
 }
 
 type ResponseStream = Pin<Box<dyn Stream<Item = Result<ChatMessage, Status>> + Send>>;
@@ -30,19 +31,31 @@ impl ChatService for MyChatService {
     async fn chat_stream(&self, request: Request<Streaming<ChatMessage>>) -> 
     ChatResult<Self::ChatStreamStream> {
         let client_id = request.remote_addr().map(|addr| addr.to_string()).unwrap();
+        let (tx, rx) = mpsc::channel(128);
         {
             let mut clients = self.clients.lock().await;
-            clients.insert(client_id.clone(), ());
+            println!("Current number of clients in the server: {}", clients.len());
+            clients.insert(client_id.clone(), tx.clone());
         }
         let mut incoming = request.into_inner();
-        let (tx, rx) = mpsc::channel(128);
+        let clients = self.clients.clone();
         
         tokio::spawn(async move {
             while let Some(result) = incoming.next().await {
                 match result {
                     Ok(res) => {
                         println!("{}: {:?} \n{:?}\n\n", &client_id,res.message, res.timestamp );
-                        tx.send(Ok(res)).await.unwrap();
+                        let clients = clients.lock().await;
+                        for (id, client_tx) in clients.iter() {
+                            if id != &client_id {
+                                let message = ChatMessage {
+                                    message: format!("{}: {:?} \n{:?}\n\n", &client_id,res.message, res.timestamp),
+                                    timestamp: Utc::now().timestamp()
+                                };
+                                client_tx.send(Ok(message)).await.unwrap();
+                            }
+                        }
+                        
                     }, 
                     Err(_) => {
                         eprintln!("Chat session ended!");
