@@ -22,14 +22,17 @@ use dotenv::dotenv;
 const MAX_RETRIES : i8 = 5;
 
 
-pub async fn input() -> String {
-    println!("Type something...");
+pub async fn input(prompt: Option<String>) -> String {
+    if let Some(prompt) = prompt {
+        println!("{prompt}");
+    }
     let mut inp = String::new();
     let stdin = io::stdin();
     let mut reader = BufReader::new(stdin);
     reader.read_line(& mut inp).await.expect("Failed to read line");
     inp.trim().to_string()
 }
+
 
 async fn chat(client: &mut ChatServiceClient<Channel>){
     let (tx, rx) = mpsc::channel(128);
@@ -38,14 +41,16 @@ async fn chat(client: &mut ChatServiceClient<Channel>){
     tokio::spawn(async move {
         // let thread = thread::current();
         // println!("Name: {:?}, id: {:?}", thread.name(), thread.id());
+        let name = input(Some("Please enter your name:".to_string())).await;
         loop {
             
-            let user_msg = input().await;
+            let user_msg = input(None).await;
             if user_msg.eq_ignore_ascii_case("exit") {
                 break;
             } else {
                 let msg = ChatMessage {
                     message: user_msg.to_string(),
+                    from: name.clone(),
                     timestamp: Utc::now().timestamp(),
                 };
 
@@ -100,9 +105,7 @@ async fn chat(client: &mut ChatServiceClient<Channel>){
 pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     let mut retries : i8 = 0;
-    let t = env::var("SERVER_ENDPOINT");
-    println!("{t:?}");
-    let server_location = std::env::var("SERVER_ENDPOINT").unwrap();
+    let server_location = input(Some("Please enter the chatroom address: ".to_string())).await;
     while retries < MAX_RETRIES {
         println!("Attempt {} of connecting to the server at {} ...", retries + 1, &server_location);
         match ChatServiceClient::connect(server_location.clone()).await {

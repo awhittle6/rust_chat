@@ -36,7 +36,7 @@ impl ChatService for MyChatService {
         {
             let mut clients = self.clients.lock().await;
             clients.insert(client_id.clone(), tx.clone());
-            println!("DEBUG: {} has joined the server", &client_id);
+            println!("LOG: {} has joined the server", &client_id);
         }
         
         let mut incoming = request.into_inner();
@@ -52,7 +52,8 @@ impl ChatService for MyChatService {
 
                             if id != &client_id {
                                 let message = ChatMessage {
-                                    message: format!("{}: {} {:?}", &client_id,res.message, res.timestamp),
+                                    message: format!("{}: {} {:?}", &client_id,res.message, &res.timestamp),
+                                    from: res.clone().from,
                                     timestamp: Utc::now().timestamp()
                                 };
                                 client_tx.send(Ok(message)).await.unwrap();
@@ -88,6 +89,7 @@ pub async fn main () -> Result<(), Box<dyn std::error::Error>>{
     };
     let port = std::env::var("PORT").unwrap_or_else(|_| "50051".to_string());
     let addr = format!("0.0.0.0:{}", port);
+    println!("Server starting on port {port}");
     Server::builder()
         .add_service(ChatServiceServer::new(server))
         .serve(addr.to_socket_addrs().unwrap().next().unwrap())
