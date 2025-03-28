@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::time::Duration;
 
 use chat::ChatMessage;
@@ -97,11 +98,11 @@ async fn chat(client: &mut ChatServiceClient<Channel>){
 }
 
 
-#[tokio::main]
-pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
+
+pub async fn join_server(addr: &str) -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     let mut retries : i8 = 0;
-    let server_location = input(Some("Please enter the chatroom address: ".to_string())).await;
+    let server_location = std::string::String::from_str(addr).unwrap();
     while retries < MAX_RETRIES {
         println!("Attempt {} of connecting to the server at {} ...", retries + 1, &server_location);
         match ChatServiceClient::connect(server_location.clone()).await {

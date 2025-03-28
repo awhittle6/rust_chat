@@ -81,27 +81,18 @@ impl ChatService for MyChatService {
 
 // type ResponseStream = std::pin::Pin<dyn Stream>
 
-#[tokio::main]
-pub async fn main () -> Result<(), Box<dyn std::error::Error>>{
+// #[tokio::main]
+pub async fn start_server() -> Result<(), Box<dyn std::error::Error>>{
     dotenv().ok();
     let server = MyChatService {
         clients: Arc::new(Mutex::new(HashMap::new())),
     };
     let port = std::env::var("PORT").unwrap_or_else(|_| "50051".to_string());
     let addr = format!("0.0.0.0:{}", port);
-    println!("Server starting on port {port}");
-    match     Server::builder()
+    Server::builder()
     .add_service(ChatServiceServer::new(server))
     .serve(addr.to_socket_addrs().unwrap().next().unwrap())
-    .await {
-        Ok(_) => {
-            println!("Server starting on port {port}");
-        },
-        Err(e) => {
-            eprintln!("Error: {e}");
-        },
-    }
-
+    .await.unwrap();
     
     Ok(())
 }
