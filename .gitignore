@@ -1,2 +1,3 @@
 /target
 .env
+./protos/chat.proto

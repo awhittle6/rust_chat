@@ -52,7 +52,7 @@ impl ChatService for MyChatService {
 
                             if id != &client_id {
                                 let message = ChatMessage {
-                                    message: format!("{}: {} {:?}", &client_id,res.message, &res.timestamp),
+                                    message: res.clone().message,
                                     from: res.clone().from,
                                     timestamp: Utc::now().timestamp()
                                 };
@@ -90,11 +90,18 @@ pub async fn main () -> Result<(), Box<dyn std::error::Error>>{
     let port = std::env::var("PORT").unwrap_or_else(|_| "50051".to_string());
     let addr = format!("0.0.0.0:{}", port);
     println!("Server starting on port {port}");
-    Server::builder()
-        .add_service(ChatServiceServer::new(server))
-        .serve(addr.to_socket_addrs().unwrap().next().unwrap())
-        .await
-        .unwrap();
+    match     Server::builder()
+    .add_service(ChatServiceServer::new(server))
+    .serve(addr.to_socket_addrs().unwrap().next().unwrap())
+    .await {
+        Ok(_) => {
+            println!("Server starting on port {port}");
+        },
+        Err(e) => {
+            eprintln!("Error: {e}");
+        },
+    }
+
     
     Ok(())
 }

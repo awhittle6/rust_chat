@@ -1,6 +1,5 @@
 
 
-use std::env;
 use std::time::Duration;
 
 use chat::ChatMessage;
@@ -43,7 +42,6 @@ async fn chat(client: &mut ChatServiceClient<Channel>){
         // println!("Name: {:?}, id: {:?}", thread.name(), thread.id());
         let name = input(Some("Please enter your name:".to_string())).await;
         loop {
-            
             let user_msg = input(None).await;
             if user_msg.eq_ignore_ascii_case("exit") {
                 break;
@@ -76,7 +74,7 @@ async fn chat(client: &mut ChatServiceClient<Channel>){
                 } 
                 match rec {
                     Ok(message) => {
-                        println!("{}", message.message);
+                        println!("{}: {}",message.from, message.message);
                     },
                     Err(_) => {
                         println!("You've been disconnected from the server");
