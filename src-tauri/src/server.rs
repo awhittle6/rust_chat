@@ -9,6 +9,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 use dotenv::dotenv;
 use tokio_stream::wrappers::ReceiverStream;
+
 pub mod chat {
     tonic::include_proto!("chat");
 }

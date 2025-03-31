@@ -8,7 +8,8 @@ use tokio::io::{self, AsyncBufReadExt};
 use tokio::io::BufReader;
 use tokio::time::sleep;
 use tokio_stream::wrappers::ReceiverStream;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, Mutex};
+use tokio::sync::mpsc::{Sender, Receiver};
 pub mod chat {
     tonic::include_proto!("chat");
 }
@@ -19,6 +20,15 @@ use dotenv::dotenv;
 
 const MAX_RETRIES : i8 = 5;
 
+// static CLIENT: Mutex<Option<ChatServiceClient<tonic::transport::Channel>>> = Mutex::const_new(None);
+// static TX: Mutex<Option<mpsc::Sender<Result<ChatMessage, tonic::Status>>>> = Mutex::const_new(None);
+// static STREAM: Mutex<Option<tokio_stream<ChatMessage>>> = Mutex::const_new(None);
+
+pub type MutexOptional<T> = Mutex<Option<T>>;
+
+static CLIENT : MutexOptional<ChatServiceClient<Channel>> = Mutex::const_new(None);
+static TX: MutexOptional<Sender<ChatMessage>> = Mutex::const_new(None);
+static STREAM: MutexOptional<ReceiverStream<Receiver<ChatMessage>>> = Mutex::const_new(None);
 
 pub async fn input(prompt: Option<String>) -> String {
     if let Some(prompt) = prompt {
@@ -37,8 +47,6 @@ async fn chat(client: &mut ChatServiceClient<Channel>){
     let in_stream = ReceiverStream::new(rx);
 
     tokio::spawn(async move {
-        // let thread = thread::current();
-        // println!("Name: {:?}, id: {:?}", thread.name(), thread.id());
         let name = input(Some("Please enter your name:".to_string())).await;
         loop {
             let user_msg = input(None).await;
@@ -51,9 +59,9 @@ async fn chat(client: &mut ChatServiceClient<Channel>){
                     timestamp: Utc::now().timestamp(),
                 };
 
-                if tx.send(msg).await.is_err() {
-                    break;
-                }
+                // if tx.send(msg).await.is_err() {
+                //     break;
+                // }
             }
         }
     });
@@ -68,9 +76,6 @@ async fn chat(client: &mut ChatServiceClient<Channel>){
             let mut response_stream = res.into_inner();
             while let Some(rec) = response_stream.next().await {
                 // let message = rec.unwrap();
-                if let Err(_) = rec {
-
-                } 
                 match rec {
                     Ok(message) => {
                         println!("{}: {}",message.from, message.message);
@@ -109,6 +114,7 @@ pub async fn join_server(addr: &str) -> Result<(), Box<dyn std::error::Error>> {
             Ok(mut client) => {
                 println!("✅ Connected to server!");
                 chat(&mut client).await;
+                break;
             }, Err(_) => {
                 retries += 1;
                 if retries == MAX_RETRIES {

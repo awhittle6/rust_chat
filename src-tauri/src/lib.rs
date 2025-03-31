@@ -1,6 +1,7 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 mod server;
 mod client;
+mod errors;
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -12,26 +13,35 @@ fn dumb(name: &str) -> String {
 } 
 
 #[tauri::command]
-async fn start_server() -> String {
+async fn start_server() -> Result<bool, errors::ApplicationError> {
     // tokio::spawn
     tokio::spawn(async move {
         if let Err(e) = server::start_server().await {
             println!("Error starting server {e}");
         }
     });
-    "Server starting...".to_string()
+    Ok(true)
 }
 
 #[tauri::command] 
-async fn join_server(addr: String) -> String  {
+async fn join_server(addr: String) -> Result<bool, errors::ApplicationError>  {
     let new_str = addr.clone();
     tokio::spawn(async move {
-        if let Err(e) = client::join_server(&new_str).await {
-            println!("Error joining server!");
+        if let Err(_) = client::join_server(&new_str).await {
+            eprintln!("Error");
+        } else {
+            println!("What's going on?");
         }
     });
-    "Joining starting...".to_string()
+    Ok(true)
 }
+
+#[tauri::command]
+async fn leave_chat_room() -> Result<(), String> {
+    Ok(())
+}
+
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
