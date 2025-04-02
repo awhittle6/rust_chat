@@ -30,7 +30,7 @@ async fn join_server(addr: String) -> Result<bool, errors::ApplicationError>  {
         if let Err(_) = client::join_server(&new_str).await {
             eprintln!("Error");
         } else {
-            println!("What's going on?");
+            // println!("What's going on?");
         }
     });
     Ok(true)

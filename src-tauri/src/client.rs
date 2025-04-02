@@ -18,6 +18,8 @@ use tonic::transport::Channel;
 use tonic::Request;
 use dotenv::dotenv;
 
+use crate::errors::ChatMessage;
+
 const MAX_RETRIES : i8 = 5;
 
 // static CLIENT: Mutex<Option<ChatServiceClient<tonic::transport::Channel>>> = Mutex::const_new(None);
@@ -28,7 +30,7 @@ pub type MutexOptional<T> = Mutex<Option<T>>;
 
 static CLIENT : MutexOptional<ChatServiceClient<Channel>> = Mutex::const_new(None);
 static TX: MutexOptional<Sender<ChatMessage>> = Mutex::const_new(None);
-static STREAM: MutexOptional<ReceiverStream<Receiver<ChatMessage>>> = Mutex::const_new(None);
+static STREAM: MutexOptional<ReceiverStream<ChatMessage>> = Mutex::const_new(None);
 
 pub async fn input(prompt: Option<String>) -> String {
     if let Some(prompt) = prompt {
@@ -42,12 +44,24 @@ pub async fn input(prompt: Option<String>) -> String {
 }
 
 
+
+pub async fn send_message(content: String) -> Result<(), Box<dyn std::error::Errror>> {
+    let tx_guard = TX.lock().await;
+    if let Some(tx) = &*tx_guard {
+        let message = ChatMessage {
+            from: "".to_string(),
+            message: todo!(),
+            timestamp: todo!(),
+        };
+    }
+    Ok(())
+}
 async fn chat(client: &mut ChatServiceClient<Channel>){
     let (tx, rx) = mpsc::channel(128);
     let in_stream = ReceiverStream::new(rx);
 
     tokio::spawn(async move {
-        let name = input(Some("Please enter your name:".to_string())).await;
+        // let name = input(Some("Please enter your name:".to_string())).await;
         loop {
             let user_msg = input(None).await;
             if user_msg.eq_ignore_ascii_case("exit") {
@@ -55,21 +69,12 @@ async fn chat(client: &mut ChatServiceClient<Channel>){
             } else {
                 let msg = ChatMessage {
                     message: user_msg.to_string(),
-                    from: name.clone(),
+                    from: "".to_string(),
                     timestamp: Utc::now().timestamp(),
                 };
-
-                // if tx.send(msg).await.is_err() {
-                //     break;
-                // }
             }
         }
     });
-    // let t = client.chat_stream(Request::new(in_stream)).await;
-    // s
-    // if let Ok(t) = client.chat_stream(Request::new(in_stream)).await {
-
-    // }
 
     match client.chat_stream(Request::new(in_stream)).await {
         Ok(res) => {
@@ -112,8 +117,11 @@ pub async fn join_server(addr: &str) -> Result<(), Box<dyn std::error::Error>> {
         println!("Attempt {} of connecting to the server at {} ...", retries + 1, &server_location);
         match ChatServiceClient::connect(server_location.clone()).await {
             Ok(mut client) => {
+                *CLIENT.lock().await = Some(client);
+                let (tx, rx) = mpsc::channel::<ChatMessage>(128);
+                *STREAM.lock().await = Some(ReceiverStream::new(rx));
+                *TX.lock().await = Some(tx);
                 println!("✅ Connected to server!");
-                chat(&mut client).await;
                 break;
             }, Err(_) => {
                 retries += 1;
