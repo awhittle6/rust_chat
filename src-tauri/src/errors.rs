@@ -1,4 +1,5 @@
 use serde::Serialize;
+use tonic::Status;
 
 #[derive(Debug, Serialize)]
 pub enum ApplicationError {

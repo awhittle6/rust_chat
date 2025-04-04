@@ -45,20 +45,21 @@ impl ChatService for MyChatService {
         
         tokio::spawn(async move {
             while let Some(result) = incoming.next().await {
+                println!("Message recieved!@");
                 match result {
                     Ok(res) => {
                         println!("{}: {:?} \n{:?}\n\n", &client_id,res.message, res.timestamp );
                         let clients = clients.lock().await;
                         for (id, client_tx) in clients.iter() {
-
-                            if id != &client_id {
+                            
+                            // if id != &client_id {
                                 let message = ChatMessage {
                                     message: res.clone().message,
                                     from: res.clone().from,
                                     timestamp: Utc::now().timestamp()
                                 };
                                 client_tx.send(Ok(message)).await.unwrap();
-                            }
+                            // }
                         }
                         
                     }, 

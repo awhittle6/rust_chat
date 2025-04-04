@@ -1,0 +1,1 @@
+pub type ChatResult<T> = Result<Response<T>, Status>;

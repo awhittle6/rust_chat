@@ -52,7 +52,7 @@ export default function ChatRoom() {
     if (!messageInput.trim()) return;
     
     try {
-      await invoke('send_message', { content: messageInput });
+      await invoke('send_message', { message: messageInput });
       
       // Add our own message to the UI immediately for better UX
       // The server will echo it back for other participants

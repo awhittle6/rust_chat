@@ -2,6 +2,10 @@
 mod server;
 mod client;
 mod errors;
+use tauri::{Manager, Window};
+
+
+
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -22,6 +26,21 @@ async fn start_server() -> Result<bool, errors::ApplicationError> {
     });
     Ok(true)
 }
+
+#[tauri::command]
+async fn send_message(message: &str) -> Result<bool, String> {
+    let m = message.clone().to_string();
+    match client::send_message(m).await {
+        Ok(_) => {
+            println!("Sent message successfully");
+        },
+        Err(_) => {
+            println!("Message could not be sent!");
+        },
+    };
+    Ok(true)
+}
+
 
 #[tauri::command] 
 async fn join_server(addr: String) -> Result<bool, errors::ApplicationError>  {
@@ -47,7 +66,7 @@ async fn leave_chat_room() -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![dumb, start_server, join_server])
+        .invoke_handler(tauri::generate_handler![dumb, start_server, join_server, send_message])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
